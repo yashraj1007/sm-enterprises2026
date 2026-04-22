@@ -1,0 +1,127 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. GLOBAL SAFETY NET
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- HELPER PRIMITIVES ---
+    function isSignedIn() { return request.auth != null; }
+    // Using email_verified is a security pillar, but env might not support it for all flows. 
+    // We prefer it for standard sessions.
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    
+    // Identity Supremacy check from /users/ collection profile
+    function isAdmin() { 
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; 
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // --- VALIDATION BLUEPRINTS ---
+
+    function isValidUser(data) {
+      return data.email is string && data.email.size() <= 100 &&
+             data.role in ['user', 'admin'] &&
+             data.createdAt is string;
+    }
+
+    function isValidProduct(data) {
+      return data.name is string && data.name.size() <= 100 &&
+             data.price is number && data.price > 0 &&
+             data.category in ['laptop', 'accessory'] &&
+             data.stock is number &&
+             (data.imageUrl == null || (data.imageUrl is string && data.imageUrl.size() <= 500)) &&
+             data.createdAt is string;
+    }
+
+    function isValidOrder(data) {
+      return data.customerEmail is string && data.customerEmail.size() <= 100 &&
+             data.items is list && data.items.size() > 0 && data.items.size() <= 50 &&
+             data.total is number && data.total >= 0 &&
+             data.status in ['pending', 'processing', 'shipped', 'delivered', 'cancelled'] &&
+             data.createdAt is string;
+    }
+
+    function isValidQuery(data) {
+      return data.name is string && data.name.size() <= 100 &&
+             data.email is string && data.email.size() <= 100 &&
+             data.type in ['software', 'hardware'] &&
+             data.problem is string && data.problem.size() <= 2000 &&
+             data.status in ['pending', 'in-progress', 'resolved'] &&
+             (data.problemImageUrl == null || (data.problemImageUrl is string && data.problemImageUrl.size() <= 350000)) &&
+             data.createdAt is string;
+    }
+
+    // --- COLLECTION RULES ---
+
+    // USERS COLLECTION
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      // Tier: Standard User Registration
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().role == 'user';
+      // Tier: Self Update
+      allow update: if isOwner(userId) && isValidUser(incoming()) &&
+                    incoming().diff(existing()).affectedKeys().hasOnly(['email']) &&
+                    incoming().role == existing().role;
+      // Tier: Admin Oversight
+      allow write: if isAdmin();
+    }
+
+    // PRODUCTS CATALOG
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidProduct(incoming());
+    }
+
+    // CUSTOMER ORDERS
+    match /orders/{orderId} {
+      allow list: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow get: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      
+      allow create: if isVerified() && isValidOrder(incoming()) && 
+                    (incoming().userId == request.auth.uid || incoming().userId == 'manual-entry');
+      
+      allow update: if isAdmin() || (
+        isOwner(existing().userId) && 
+        isValidOrder(incoming()) &&
+        existing().status == 'pending' &&
+        incoming().status == 'cancelled' &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+      );
+    }
+
+    // SERVICE TICKETS (QUERIES)
+    match /queries/{queryId} {
+      allow list: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      allow get: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
+      
+      allow create: if isVerified() && isValidQuery(incoming()) && 
+                    incoming().userId == request.auth.uid &&
+                    isValidId(queryId);
+      
+      allow update: if (
+        isAdmin() && isValidQuery(incoming())
+      ) || (
+        isOwner(existing().userId) && 
+        isValidQuery(incoming()) &&
+        existing().status == 'pending' &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['problem'])
+      );
+      
+      allow delete: if isAdmin();
+    }
+
+    // GENERAL CONTACTS
+    match /contact_queries/{contactId} {
+      allow create: if true; // Open contact form
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}

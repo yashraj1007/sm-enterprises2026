@@ -1,0 +1,138 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user profile information and roles",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique ID of the user" },
+        "email": { "type": "string", "format": "email", "description": "The user's email address" },
+        "role": { "type": "string", "enum": ["admin", "user"], "description": "The user's role" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the profile was created" }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Stores hardware product information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Product name" },
+        "description": { "type": "string", "description": "High-level spec summary" },
+        "price": { "type": "number", "description": "Unit price in INR" },
+        "category": { "type": "string", "enum": ["laptop", "accessory"], "description": "Hardware category" },
+        "stock": { "type": "number", "description": "Units in inventory" },
+        "imageUrl": { "type": "string", "description": "Asset URL or Base64 sync" },
+        "specs": { 
+          "type": "object",
+          "properties": {
+            "ram": { "type": "string" },
+            "storage": { "type": "string" },
+            "processor": { "type": "string" }
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "price", "category", "stock", "createdAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase records",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The ID of the user or 'manual-entry'" },
+        "customerEmail": { "type": "string", "format": "email" },
+        "customerPhone": { "type": "string" },
+        "customerAddress": { "type": "string" },
+        "items": { 
+          "type": "array", 
+          "items": { 
+            "type": "object", 
+            "properties": {
+              "name": { "type": "string" },
+              "quantity": { "type": "number" },
+              "price": { "type": "number" }
+            }
+          } 
+        },
+        "total": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "processing", "shipped", "delivered", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerEmail", "items", "total", "status", "createdAt"]
+    },
+    "Query": {
+      "title": "Service Query",
+      "description": "Technical support tickets with Base64 evidence",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["software", "hardware"] },
+        "deviceType": { "type": "string" },
+        "problem": { "type": "string" },
+        "address": { "type": "string" },
+        "problemImageUrl": { "type": "string", "description": "Base64 High-Reliability Sync or URL" },
+        "status": { "type": "string", "enum": ["pending", "in-progress", "resolved"] },
+        "adminResponse": { "type": "string" },
+        "respondedAt": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "type", "problem", "status", "createdAt"]
+    },
+    "ContactQuery": {
+      "title": "Contact Query",
+      "description": "Stores general contact form submissions",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Sender name" },
+        "email": { "type": "string", "format": "email", "description": "Sender email" },
+        "subject": { "type": "string", "description": "Message subject" },
+        "message": { "type": "string", "description": "Message content" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the message was sent" }
+      },
+      "required": ["name", "email", "subject", "message", "createdAt"]
+    },
+    "Upload": {
+      "title": "Uploaded Image",
+      "description": "Stores metadata for uploaded images",
+      "type": "object",
+      "properties": {
+        "imageUrl": { "type": "string", "format": "uri", "description": "URL of the uploaded image" },
+        "fileName": { "type": "string", "description": "Original file name" },
+        "uploadedAt": { "type": "string", "format": "date-time", "description": "When the image was uploaded" },
+        "uploadedBy": { "type": "string", "description": "Email or ID of the uploader" },
+        "userId": { "type": "string", "description": "ID of the uploader for access control" }
+      },
+      "required": ["imageUrl", "fileName", "uploadedAt", "uploadedBy"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Product catalog"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer orders"
+    },
+    "/queries/{queryId}": {
+      "schema": "Query",
+      "description": "Service queries"
+    },
+    "/contact_queries/{contactId}": {
+      "schema": "ContactQuery",
+      "description": "General contact submissions"
+    },
+    "/uploads/{uploadId}": {
+      "schema": "Upload",
+      "description": "User uploaded images gallery"
+    }
+  }
+}
