@@ -93,7 +93,7 @@ service cloud.firestore {
     match /orders/{orderId} {
       allow get, list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       
-      allow create: if isVerified() && isValidOrder(incoming()) && 
+      allow create: if isSignedIn() && isValidOrder(incoming()) && 
                     (incoming().userId == request.auth.uid || incoming().userId == 'manual-entry') &&
                     incoming().keys().hasAll(['customerEmail', 'items', 'total', 'status', 'createdAt', 'userId']);
       
@@ -109,7 +109,7 @@ service cloud.firestore {
     match /queries/{queryId} {
       allow get, list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       
-      allow create: if isVerified() && isValidQuery(incoming()) && 
+      allow create: if isSignedIn() && isValidQuery(incoming()) && 
                     incoming().userId == request.auth.uid &&
                     isValidId(queryId) &&
                     incoming().keys().hasAll(['name', 'email', 'type', 'problem', 'status', 'createdAt', 'userId']);

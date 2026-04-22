@@ -56,8 +56,12 @@ export default function HardwareSolutions() {
       setUploadedUrl(null);
       reset();
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'queries');
       setStatus('error');
+      try {
+        handleFirestoreError(error, OperationType.CREATE, 'queries');
+      } catch (logError) {
+        // Error is logged to console by handler, UI already set to error status
+      }
     }
   };
 

@@ -56,8 +56,12 @@ export default function SoftwareSolutions() {
       setUploadedUrl(null);
       reset();
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, 'queries');
       setStatus('error');
+      try {
+        handleFirestoreError(error, OperationType.CREATE, 'queries');
+      } catch (logError) {
+        // Error logged
+      }
     }
   };
 

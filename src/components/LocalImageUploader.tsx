@@ -36,7 +36,8 @@ export default function LocalImageUploader({ onUploadSuccess }: LocalImageUpload
       
       if (isImage) {
         setProgress(30);
-        const options = { maxSizeMB: 0.1, maxWidthOrHeight: 1000, useWebWorker: true };
+        // Optimized for faster worldwide transmission
+        const options = { maxSizeMB: 0.05, maxWidthOrHeight: 800, useWebWorker: true };
         finalBlob = await imageCompression(file, options);
       }
       
