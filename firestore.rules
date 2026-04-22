@@ -18,7 +18,10 @@ service cloud.firestore {
     
     // Identity & RBAC Root
     function isAdmin() { 
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'; 
+      return isSignedIn() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        request.auth.token.email in ['yashrajbhore1107@gmail.com', 'bauchkarpranoti@gmail.com', 'testywebdevp@gmail.com']
+      );
     }
     
     function isOwner(userId) {
@@ -35,10 +38,12 @@ service cloud.firestore {
 
     function isValidProduct(data) {
       return data.name is string && data.name.size() <= 100 &&
-             data.price is number && data.price > 0 &&
+             data.price is number && data.price >= 0 &&
              data.category in ['laptop', 'accessory'] &&
              data.stock is number &&
-             (data.imageUrl == null || (data.imageUrl is string && data.imageUrl.size() <= 1000)) &&
+             (data.imageUrl == null || (data.imageUrl is string && data.imageUrl.size() <= 400000)) &&
+             (data.description == null || (data.description is string && data.description.size() <= 2000)) &&
+             (data.specs == null || data.specs is map) &&
              data.createdAt is string;
     }
 
